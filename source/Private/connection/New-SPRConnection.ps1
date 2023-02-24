@@ -14,11 +14,20 @@ function New-SPRConnection {
 
     $headers = @{
         'accept' = 'application/json;odata=nometadata'
+        'X-FORMS_BASED_AUTH_ACCEPTED' = 'f'
     }
     
-    Invoke-RestMethod -Uri $Uri -Headers $headers -Credential $Credential
+    $connection = Invoke-RestMethod -Uri "$Uri/_api/contextinfo" -Headers $headers -Credential $Credential -Method POST -SessionVariable 'webSession'
+    Add-Member -InputObject $connection -MemberType NoteProperty -Name 'WebSession' -Value $webSession
+    New-Variable -Name 'SPRConnection' -Description 'SPRConnection object' -Option Constant -Value $connection -Scope Script
 }
 
 $cred = Get-Credential 
 
-New-SPRConnection -Uri 'https://zdtwc.sharepoint.com/sites/testsite1/_api/web' -Credential $cred -Verbose
+New-SPRConnection -Uri 'https://portal-se.dev.de' -Credential $cred -Verbose
+
+$connection.FormDigestTimeoutSeconds = $null
+
+$connection = Get-Variable SPRConnection -ValueOnly
+
+$connection.WebFullUrl = $null
