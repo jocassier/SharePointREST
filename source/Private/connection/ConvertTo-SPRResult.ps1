@@ -1,4 +1,4 @@
-function Get-SPRConnection {
+function ConvertTo-SPRResult {
     [CmdletBinding()]
     param()
     

@@ -3,31 +3,37 @@ function New-SPRConnection {
     param (
         # Uri to connect to
         [Parameter(Mandatory, Position = 0)]
-        [string]
+        [uri]
         $Uri,
 
+        [Parameter(Mandatory, Position = 1)]
+        [string]
+        $OData,
+
         # Credentials to use to connect
-        [Parameter(Position = 1)]
+        [Parameter(Position = 2)]
         [pscredential]
-        $Credential
+        $Credential,
+
+        # Credentials to use to connect
+        [Parameter()]
+        [switch]
+        $UseDefaultCredentials
     )
 
     $headers = @{
         'accept' = 'application/json;odata=nometadata'
         'X-FORMS_BASED_AUTH_ACCEPTED' = 'f'
     }
+
+    $PSBoundParameters['Uri'] = Join-Uri -Uri $Uri -RelativePath '/_api/contextinfo'
+    $O_Data = $OData
+    $null = $PSBoundParameters.Remove('OData')
     
-    $connection = Invoke-RestMethod -Uri "$Uri/_api/contextinfo" -Headers $headers -Credential $Credential -Method POST -SessionVariable 'webSession'
+    $connection = Invoke-RestMethod @PSBoundParameters -Headers $headers -Method POST -SessionVariable 'webSession'
+
     Add-Member -InputObject $connection -MemberType NoteProperty -Name 'WebSession' -Value $webSession
-    New-Variable -Name 'SPRConnection' -Description 'SPRConnection object' -Option Constant -Value $connection -Scope Script
+    $webSession.Headers['accept'] = $webSession.Headers['accept'].Replace('nometadata',$O_Data)
+
+    Set-Variable -Name 'SPRConnection' -Description 'SPRConnection object' -Option ReadOnly -Value $connection -Scope Script -Force
 }
-
-$cred = Get-Credential 
-
-New-SPRConnection -Uri 'https://portal-se.dev.de' -Credential $cred -Verbose
-
-$connection.FormDigestTimeoutSeconds = $null
-
-$connection = Get-Variable SPRConnection -ValueOnly
-
-$connection.WebFullUrl = $null
